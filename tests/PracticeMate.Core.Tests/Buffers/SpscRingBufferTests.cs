@@ -111,14 +111,14 @@ public class SpscRingBufferTests
             var received = 0;
             var c = new Random(consumerSeed);
             var dst = new float[capacity];
-            var deadline = DateTime.UtcNow.AddSeconds(30);
+            var start = TimeProvider.System.GetTimestamp();
             while (received < total)
             {
                 if (producer.IsFaulted)
                 {
                     producer.GetAwaiter().GetResult();
                 }
-                Assert.True(DateTime.UtcNow < deadline, $"逾時：已收到 {received}/{total}，生產者送出 {Volatile.Read(ref producerNext)}");
+                Assert.True(TimeProvider.System.GetElapsedTime(start) < TimeSpan.FromSeconds(30), $"逾時：已收到 {received}/{total}，生產者送出 {Volatile.Read(ref producerNext)}");
                 var n = rb.Read(dst.AsSpan(0, c.Next(1, capacity)));
                 for (var i = 0; i < n; i++)
                 {
