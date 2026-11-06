@@ -21,8 +21,15 @@
             <c:TunerGauge NeedleAngle="{Binding NeedleAngle}" HasPitch="{Binding HasPitch}" IsInTune="{Binding IsInTune}" MinHeight="260" />
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="24,0,0,0">
                 <TextBlock Text="{Binding NoteText}" FontSize="96" FontWeight="Bold" HorizontalAlignment="Center" />
-                <TextBlock Text="{Binding CentsText, StringFormat={}{0} 音分}" FontSize="32" HorizontalAlignment="Center" />
-                <TextBlock Text="{Binding FrequencyText}" Style="{StaticResource Muted}" FontSize="18" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="{Binding CentsText}" FontSize="32" />
+                    <TextBlock Text=" 音分" FontSize="20" Style="{StaticResource Muted}" VerticalAlignment="Bottom" Margin="0,0,0,6"
+                               Visibility="{Binding HasPitch, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+                <TextBlock Text="{Binding FrequencyText}" Style="{StaticResource Muted}" FontSize="18" HorizontalAlignment="Center" Margin="0,8,0,0"
+                           Visibility="{Binding HasPitch, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="請對著麥克風吹奏一個長音" Style="{StaticResource Muted}" FontSize="14" HorizontalAlignment="Center" Margin="0,8,0,0"
+                           Visibility="{Binding HasPitch, Converter={StaticResource InverseBoolToVisibility}}" />
                 <TextBlock Text="{Binding ConcertText}" Style="{StaticResource Muted}" FontSize="16" HorizontalAlignment="Center" Margin="0,4,0,0" />
             </StackPanel>
         </Grid>
