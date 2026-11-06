@@ -1,0 +1,55 @@
+<UserControl x:Class="PracticeMate.App.Views.MetronomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="24" MaxWidth="760" HorizontalAlignment="Left">
+        <TextBlock Text="節拍器" Style="{StaticResource Heading}" />
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <TextBlock Text="速度" VerticalAlignment="Center" Width="80" />
+            <Slider Minimum="30" Maximum="300" Width="360" Value="{Binding Bpm}" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+            <TextBox Text="{Binding Bpm, UpdateSourceTrigger=PropertyChanged}" Width="60" Margin="12,0,6,0" />
+            <TextBlock Text="BPM" VerticalAlignment="Center" Style="{StaticResource Muted}" />
+        </StackPanel>
+        <TextBlock Text="{Binding BpmError}" Foreground="{StaticResource DangerBrush}" Margin="80,4,0,0" Visibility="{Binding BpmError, Converter={StaticResource NullToCollapsed}}" />
+        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+            <TextBlock Text="每小節" VerticalAlignment="Center" Width="80" />
+            <TextBox Text="{Binding BeatsPerBar, UpdateSourceTrigger=PropertyChanged}" Width="60" />
+            <TextBlock Text="拍（1–12）" VerticalAlignment="Center" Style="{StaticResource Muted}" Margin="6,0,0,0" />
+        </StackPanel>
+        <TextBlock Text="{Binding BeatsPerBarError}" Foreground="{StaticResource DangerBrush}" Margin="80,4,0,0" Visibility="{Binding BeatsPerBarError, Converter={StaticResource NullToCollapsed}}" />
+        <TextBlock Text="重音拍（點選切換，播放時亮起目前拍）" Style="{StaticResource Muted}" Margin="0,16,0,6" />
+        <ItemsControl ItemsSource="{Binding Accents}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <ToggleButton IsChecked="{Binding IsAccent}" Width="52" Height="52" Margin="0,0,8,8" Cursor="Hand">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="Bd" CornerRadius="26" Background="#2D3440" BorderBrush="#394252" BorderThickness="2">
+                                    <TextBlock Text="{Binding Label}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#6B4FB8" />
+                                    </Trigger>
+                                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="#F2B84B" />
+                                    </DataTrigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
+                    </ToggleButton>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+            <Button Content="開始" Command="{Binding StartCommand}" Style="{StaticResource PrimaryButton}" />
+            <Button Content="停止" Command="{Binding StopCommand}" />
+        </StackPanel>
+        <TextBlock Text="執行中變更速度或拍號，會在下一小節第一拍生效。" Style="{StaticResource Muted}" Margin="0,12,0,0" />
+        <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource Status}" />
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,31 @@
+<UserControl x:Class="PracticeMate.App.Views.TunerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:PracticeMate.App.Controls">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="調音器" Style="{StaticResource Heading}" Margin="0,0,24,0" />
+            <Button Content="開始聆聽" Command="{Binding StartCommand}" Style="{StaticResource PrimaryButton}" />
+            <Button Content="停止" Command="{Binding StopCommand}" />
+        </StackPanel>
+        <Grid Grid.Row="1" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <c:TunerGauge NeedleAngle="{Binding NeedleAngle}" HasPitch="{Binding HasPitch}" IsInTune="{Binding IsInTune}" MinHeight="260" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="24,0,0,0">
+                <TextBlock Text="{Binding NoteText}" FontSize="96" FontWeight="Bold" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding CentsText, StringFormat={}{0} 音分}" FontSize="32" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding FrequencyText}" Style="{StaticResource Muted}" FontSize="18" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                <TextBlock Text="{Binding ConcertText}" Style="{StaticResource Muted}" FontSize="16" HorizontalAlignment="Center" Margin="0,4,0,0" />
+            </StackPanel>
+        </Grid>
+        <TextBlock Grid.Row="2" Text="{Binding StatusMessage}" Style="{StaticResource Status}" />
+    </Grid>
+</UserControl>
