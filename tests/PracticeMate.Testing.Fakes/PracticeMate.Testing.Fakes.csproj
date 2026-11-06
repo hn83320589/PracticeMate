@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 測試用假裝置與替身（引用 Core；與參考實作分開，參考實作仍保持獨立） -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PracticeMate.Core\PracticeMate.Core.csproj" />
+  </ItemGroup>
+</Project>
