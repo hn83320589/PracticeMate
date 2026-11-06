@@ -9,3 +9,6 @@ dotnet_diagnostic.CA1859.severity = none
 # 測試輔助型別的命名/例外建構子
 dotnet_diagnostic.CA1032.severity = none
 dotnet_diagnostic.CA1720.severity = none
+dotnet_diagnostic.CA1827.severity = none
+dotnet_diagnostic.CA1822.severity = none
+
