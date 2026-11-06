@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>PracticeMate</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PracticeMate.App.ViewModels\PracticeMate.App.ViewModels.csproj" />
+    <ProjectReference Include="..\PracticeMate.Audio.Windows\PracticeMate.Audio.Windows.csproj" />
+  </ItemGroup>
+</Project>
