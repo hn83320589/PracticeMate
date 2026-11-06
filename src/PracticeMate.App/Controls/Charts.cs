@@ -63,7 +63,7 @@ public sealed class NoteDeviationChart : CollectionChart
     {
         drawingContext.DrawRectangle(Palette.Background, null, new Rect(0, 0, ActualWidth, ActualHeight));
         var notes = Items?.OfType<NoteRow>().ToList() ?? [];
-        var plot = new Rect(44, 10, Math.Max(1, ActualWidth - 54), Math.Max(1, ActualHeight - 40));
+        var plot = new Rect(44, 26, Math.Max(1, ActualWidth - 54), Math.Max(1, ActualHeight - 56));
         var y = DrawYAxis(drawingContext, plot, -50, 50, 10, "");
         if (notes.Count == 0)
         {
@@ -95,8 +95,9 @@ public sealed class BeatDeviationChart : CollectionChart
     {
         drawingContext.DrawRectangle(Palette.Background, null, new Rect(0, 0, ActualWidth, ActualHeight));
         var beats = Items?.OfType<BeatRow>().ToList() ?? [];
-        var limit = beats.Count == 0 ? 100 : Math.Max(50, Math.Ceiling(beats.Max(b => Math.Abs(b.DeviationMs)) / 25) * 25);
-        var plot = new Rect(54, 10, Math.Max(1, ActualWidth - 64), Math.Max(1, ActualHeight - 40));
+        // 上限取 40 的倍數，讓四等分刻度為整數（10、20、30…）
+        var limit = beats.Count == 0 ? 80 : Math.Max(40, Math.Ceiling(beats.Max(b => Math.Abs(b.DeviationMs)) / 40) * 40);
+        var plot = new Rect(54, 26, Math.Max(1, ActualWidth - 64), Math.Max(1, ActualHeight - 56));
         var y = DrawYAxis(drawingContext, plot, -limit, limit, limit / 4, "");
         if (beats.Count == 0)
         {

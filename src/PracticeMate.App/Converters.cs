@@ -20,6 +20,15 @@ public sealed class InverseBooleanConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => value is bool b && !b;
 }
 
+/// <summary>true → Collapsed、false → Visible。</summary>
+public sealed class InverseBoolToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is true ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 /// <summary>null 或空字串 → Collapsed。</summary>
 public sealed class NullToCollapsedConverter : IValueConverter
 {
