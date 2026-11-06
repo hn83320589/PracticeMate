@@ -376,3 +376,8 @@ dotnet_naming_style.s_camelcase.required_suffix =
 dotnet_naming_style.s_camelcase.word_separator = 
 dotnet_naming_style.s_camelcase.capitalization = camel_case
 
+
+# PracticeMate：純 C# 方案，不需避開 VB 保留字（例如 Stop）
+[*.cs]
+dotnet_diagnostic.CA1716.severity = none
+
