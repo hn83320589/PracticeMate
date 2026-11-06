@@ -296,4 +296,4 @@ PracticeMate.App.Tests                2   （WPF 實際繪製：PNG 匯出）
 
 ---
 
-設計文件：[docs/design/architecture.md](docs/design/architecture.md)
+設計文件：[docs/design/architecture.md](docs/design/architecture.md)　｜　測試報告：[docs/test-report.md](docs/test-report.md)
