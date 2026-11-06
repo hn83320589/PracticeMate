@@ -18,5 +18,6 @@
   <ItemGroup>
     <ProjectReference Include="../../src/PracticeMate.App.ViewModels/PracticeMate.App.ViewModels.csproj" />
     <ProjectReference Include="../PracticeMate.Testing.Reference/PracticeMate.Testing.Reference.csproj" />
+    <ProjectReference Include="..\PracticeMate.Testing.Fakes\PracticeMate.Testing.Fakes.csproj" />
   </ItemGroup>
 </Project>
