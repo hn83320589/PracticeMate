@@ -1,0 +1,11 @@
+# 測試程式碼：可讀性優先，關閉只影響效能或 API 設計的分析規則
+[*.cs]
+# 測試方法名稱使用底線
+dotnet_diagnostic.CA1707.severity = none
+# 常數陣列引數（測試資料內嵌較易讀）
+dotnet_diagnostic.CA1861.severity = none
+# 參數改為具體型別以提升效能
+dotnet_diagnostic.CA1859.severity = none
+# 測試輔助型別的命名/例外建構子
+dotnet_diagnostic.CA1032.severity = none
+dotnet_diagnostic.CA1720.severity = none
