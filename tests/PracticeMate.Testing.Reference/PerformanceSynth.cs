@@ -99,6 +99,7 @@ public static class PerformanceSynth
             _ => 0.001,
         } * fs;
         var release = o.ReleaseSeconds * fs;
+        var cutFade = 0.010 * fs; // 撥弦/打擊在截斷處淡出 10 ms，避免截斷本身產生喀聲（假起音）
         var phase = 0.0;
         for (var n = onset; n < end; n++)
         {
@@ -106,8 +107,8 @@ public static class PerformanceSynth
             double env = o.Articulation switch
             {
                 Articulation.Wind => Math.Min(1.0, t / attack) * Math.Min(1.0, (end - n) / release),
-                Articulation.Plucked => Math.Min(1.0, t / attack) * Math.Exp(-t / (o.DecaySeconds * fs)),
-                _ => Math.Min(1.0, t / attack) * Math.Exp(-t / (0.05 * fs)),
+                Articulation.Plucked => Math.Min(1.0, t / attack) * Math.Exp(-t / (o.DecaySeconds * fs)) * Math.Min(1.0, (end - n) / cutFade),
+                _ => Math.Min(1.0, t / attack) * Math.Exp(-t / (0.05 * fs)) * Math.Min(1.0, (end - n) / cutFade),
             };
             if (o.Articulation == Articulation.Percussive)
             {
