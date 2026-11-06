@@ -1,0 +1,61 @@
+<UserControl x:Class="PracticeMate.App.Views.LoudnessView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:PracticeMate.App.Controls"
+             xmlns:s="clr-namespace:PracticeMate.App.Services"
+             xmlns:vms="clr-namespace:PracticeMate.App.ViewModels.Services;assembly=PracticeMate.App.ViewModels">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="響度報告" Style="{StaticResource Heading}" Margin="0,0,16,0" />
+            <TextBlock Text="{Binding FileName}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+        </StackPanel>
+        <WrapPanel Grid.Row="1" Margin="0,8,0,12">
+            <WrapPanel.Resources>
+                <Style x:Key="Value" TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="26" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                </Style>
+            </WrapPanel.Resources>
+            <StackPanel Width="180" Margin="0,0,16,0">
+                <TextBlock Text="整合響度" Style="{StaticResource Muted}" />
+                <TextBlock Text="{Binding IntegratedText}" Style="{StaticResource Value}" />
+            </StackPanel>
+            <StackPanel Width="150" Margin="0,0,16,0">
+                <TextBlock Text="響度範圍 LRA" Style="{StaticResource Muted}" />
+                <TextBlock Text="{Binding LraText}" Style="{StaticResource Value}" />
+            </StackPanel>
+            <StackPanel Width="170" Margin="0,0,16,0">
+                <TextBlock Text="真峰值" Style="{StaticResource Muted}" />
+                <TextBlock Text="{Binding TruePeakText}" Style="{StaticResource Value}" />
+            </StackPanel>
+            <StackPanel Width="170" Margin="0,0,16,0">
+                <TextBlock Text="最大瞬時" Style="{StaticResource Muted}" />
+                <TextBlock Text="{Binding MaxMomentaryText}" Style="{StaticResource Value}" />
+            </StackPanel>
+            <StackPanel Width="170">
+                <TextBlock Text="最大短期" Style="{StaticResource Muted}" />
+                <TextBlock Text="{Binding MaxShortTermText}" Style="{StaticResource Value}" />
+            </StackPanel>
+        </WrapPanel>
+        <c:LoudnessChart Grid.Row="2" Loudness="{Binding Result.Loudness}"
+                         TargetLufs="{Binding DataContext.Settings.NormalizationTargetLufs, RelativeSource={RelativeSource AncestorType=Window}}"
+                         s:ChartExport.Kind="{x:Static vms:ChartKind.Loudness}" />
+        <StackPanel Grid.Row="3" Margin="0,12,0,0">
+            <TextBlock Text="灰線：瞬時響度（400 ms）　藍線：短期響度（3 s）　紫色虛線：正規化目標" Style="{StaticResource Muted}" />
+            <TextBlock Text="{Binding NormalizationPreview}" Margin="0,8,0,8" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal">
+                <Button Content="正規化並另存新檔…" Command="{Binding NormalizeCommand}" Style="{StaticResource PrimaryButton}" />
+                <Button Content="匯出 CSV" Command="{Binding ExportLoudnessCsvCommand}" />
+                <Button Content="匯出 PNG" Command="{Binding ExportPngCommand}" CommandParameter="{x:Static vms:ChartKind.Loudness}" />
+            </StackPanel>
+            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource Status}" />
+        </StackPanel>
+    </Grid>
+</UserControl>
