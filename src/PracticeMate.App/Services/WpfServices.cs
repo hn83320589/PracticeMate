@@ -78,7 +78,14 @@ public sealed class ChartImageExporter : IChartImageExporter
             (int)Math.Ceiling(element.ActualWidth * dpi.DpiScaleX),
             (int)Math.Ceiling(element.ActualHeight * dpi.DpiScaleY),
             dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
-        bitmap.Render(element);
+        // 不可直接 Render(element)：RenderTargetBitmap 會套用元素在父元素中的位移，
+        // 圖表不在 (0, 0) 時匯出的圖會位移甚至全空白。改以 VisualBrush 畫在原點。
+        var visual = new DrawingVisual();
+        using (var ctx = visual.RenderOpen())
+        {
+            ctx.DrawRectangle(new VisualBrush(element), null, new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+        }
+        bitmap.Render(visual);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(path);
