@@ -26,13 +26,16 @@ public sealed record OnsetDetectorOptions
 /// 通量 = Σ max(0, L_n − maxfilt(L_{n−2}))。</item>
 /// <item>峰值挑選：±30 ms 內的局部最大，且高於 [−100 ms, +70 ms] 區域平均 + δ·全段最大；間隔至少 50 ms。</item>
 /// <item>時間精修：通量峰值落在起音中段（30 ms 起音會偏晚 10–15 ms），因此在 1 ms 解析度的振幅包絡上，
-/// 從峰值往回找「首次超過 底噪 + 10%×(峰值 − 底噪)」的位置。</item>
+/// 從峰值往回找「首次超過 底噪 + 10%×(峰值 − 底噪)」的位置（細節見 <c>Refine</c>）。</item>
 /// </list>
 /// 所有時間以取樣索引表示。
 /// </summary>
 public static class OnsetDetector
 {
     private const int Lag = 2;
+
+    /// <summary>包絡至少上升 3 dB（振幅比 √2）才視為可靠的起點。</summary>
+    private const double MinRiseRatio = 1.4125375446227544;
 
     public static IReadOnlyList<long> Detect(float[] mono, int sampleRate, OnsetDetectorOptions? options = null, CancellationToken cancellationToken = default)
     {
@@ -44,7 +47,13 @@ public static class OnsetDetector
         var flux = ComputeFlux(mono, sampleRate, window, hop, frames, o, cancellationToken);
         var peaks = PickPeaks(flux, sampleRate, hop, o);
         var envelope = Envelope(mono, sampleRate, out var block);
-        return peaks.Select(p => Refine(envelope, block, p * (long)hop, sampleRate, o)).Distinct().Order().ToList();
+        var onsets = new List<long>(peaks.Count);
+        for (var i = 0; i < peaks.Count; i++)
+        {
+            var previous = i > 0 ? peaks[i - 1] * (long)hop : -1;
+            onsets.Add(Refine(envelope, block, peaks[i] * (long)hop, previous, sampleRate, o));
+        }
+        return onsets.Distinct().Order().ToList();
     }
 
     private static double[] ComputeFlux(float[] mono, int fs, int window, int hop, int frames, OnsetDetectorOptions o, CancellationToken ct)
@@ -179,41 +188,82 @@ public static class OnsetDetector
         }
         return env;
     }
-    private static long Refine(float[] env, int block, long peakSample, int fs, OnsetDetectorOptions o)
+    /// <summary>
+    /// 把通量峰值精修到起音起點。前一個音的餘音（撥弦、殘響、漸弱）可能和新音一樣大，且因拍頻而起伏，因此：
+    /// <list type="bullet">
+    /// <item>谷底：通量峰值前 20 ms（不越過上一個起音）到峰值後 40 ms 之間的最小值，視為新音開始前的底。</item>
+    /// <item>包絡峰值：從通量峰值往後找第一個比谷底高 3 dB 以上的局部最大（不可落到前面的餘音上，
+    /// 也不跳到後面拍頻造成的第二個峰）；找不到則取 40 ms 內最大值。</item>
+    /// <item>門檻：底 + 10%×(峰 − 底)，但至少要高於谷底前 20 ms 內餘音的最大值（避免把餘音的起伏當起音），
+    /// 最多不超過 50% 上升量。回溯不越過谷底。</item>
+    /// <item>谷底到峰值上升不足 3 dB（連音、餘音完全掩蓋）時沒有可靠的包絡起點，保留通量峰值的時間。</item>
+    /// </list>
+    /// </summary>
+    private static long Refine(float[] env, int block, long peakSample, long previousPeakSample, int fs, OnsetDetectorOptions o)
     {
         if (env.Length == 0)
         {
             return peakSample;
         }
         var ms = fs / 1000.0 / block; // 每毫秒的格數（≈ 1）
-        var center = (int)(peakSample / block);
-        var searchStart = Math.Max(0, center - (int)(40 * ms));
+        var center = Math.Min(env.Length - 1, (int)(peakSample / block));
         var searchEnd = Math.Min(env.Length - 1, center + (int)(40 * ms));
-
-        var peakIdx = searchStart;
-        for (var i = searchStart; i <= searchEnd; i++)
+        var lowerBound = Math.Max(0, center - (int)(20 * ms));
+        if (previousPeakSample >= 0)
         {
-            if (env[i] > env[peakIdx])
+            lowerBound = Math.Max(lowerBound, Math.Min(center, (int)(previousPeakSample / block)));
+        }
+
+        // 谷底：通量峰值前後最低處（在 40 ms 最大值之前）
+        var maxIdx = center;
+        for (var i = center; i <= searchEnd; i++)
+        {
+            if (env[i] > env[maxIdx])
             {
-                peakIdx = i;
+                maxIdx = i;
             }
         }
-        var floorStart = Math.Max(0, peakIdx - (int)(100 * ms));
-        var floor = env[peakIdx];
-        for (var i = floorStart; i <= peakIdx; i++)
+        var floorIdx = lowerBound;
+        for (var i = lowerBound; i <= maxIdx; i++)
         {
-            floor = Math.Min(floor, env[i]);
+            if (env[i] < env[floorIdx])
+            {
+                floorIdx = i;
+            }
         }
-        var level = floor + (o.RiseFraction * (env[peakIdx] - floor));
-        var limit = Math.Max(0, peakIdx - (int)(80 * ms));
-        for (var i = peakIdx; i > limit; i--)
+        var floor = env[floorIdx];
+        if (env[maxIdx] < MinRiseRatio * floor)
+        {
+            return peakSample;
+        }
+
+        // 第一個足夠高的局部最大
+        var peakIdx = maxIdx;
+        for (var i = Math.Max(center, floorIdx + 1); i < searchEnd; i++)
+        {
+            if (env[i] >= MinRiseRatio * floor && env[i] >= env[i - 1] && env[i] >= env[i + 1])
+            {
+                peakIdx = i;
+                break;
+            }
+        }
+        var peak = env[peakIdx];
+
+        var residual = 0f;
+        for (var i = Math.Max(0, floorIdx - (int)(20 * ms)); i < floorIdx; i++)
+        {
+            residual = Math.Max(residual, env[i]);
+        }
+        var level = floor + (o.RiseFraction * (peak - floor));
+        level = Math.Min(Math.Max(level, residual), floor + (0.5f * (peak - floor)));
+
+        for (var i = peakIdx; i > floorIdx; i--)
         {
             if (env[i - 1] <= level)
             {
                 return (long)i * block;
             }
         }
-        // 找不到明確的上升（例如連音沒有音量起伏），保留通量峰值的時間
-        return peakSample;
+        return (long)floorIdx * block;
     }
 }

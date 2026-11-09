@@ -17,7 +17,8 @@ public enum Articulation
 
 /// <param name="Midi">目標音高（MIDI，A4 = 69）。</param>
 /// <param name="CentsOffset">刻意的走音（音分）。</param>
-public sealed record SynthNote(double Midi, double OnsetSeconds, double DurationSeconds, double CentsOffset = 0);
+/// <param name="Gain">此音的相對音量（線性），用於漸強/漸弱。</param>
+public sealed record SynthNote(double Midi, double OnsetSeconds, double DurationSeconds, double CentsOffset = 0, double Gain = 1.0);
 
 public sealed record PerformanceOptions
 {
@@ -34,6 +35,12 @@ public sealed record PerformanceOptions
     public double Amplitude { get; init; } = 0.4;
     public double TailSeconds { get; init; } = 0.3;
     public double? SnrDb { get; init; }
+
+    /// <summary>撥弦/打擊的餘音不截斷，自然衰減到訊號結束（與後面的音重疊）。</summary>
+    public bool RingOut { get; init; }
+
+    /// <summary>房間殘響的 RT60（秒）；0 為無殘響。以 Schroeder 殘響器（4 組並聯梳狀 + 2 組全通）加在乾聲上。</summary>
+    public double ReverbSeconds { get; init; }
     public int Seed { get; init; } = 1;
 }
 
@@ -69,6 +76,11 @@ public static class PerformanceSynth
             }
         }
 
+        if (o.ReverbSeconds > 0)
+        {
+            x = Reverb(x, fs, o.ReverbSeconds);
+        }
+
         var peak = x.Max(Math.Abs);
         if (peak > 0)
         {
@@ -91,7 +103,7 @@ public static class PerformanceSynth
         var duration = (int)Math.Round(note.DurationSeconds * fs);
         var end = o.Articulation == Articulation.Wind
             ? Math.Min(x.Length, onset + duration)
-            : Math.Min(x.Length, onset + duration + (int)(o.TailSeconds * fs));
+            : o.RingOut ? x.Length : Math.Min(x.Length, onset + duration + (int)(o.TailSeconds * fs));
         var attack = o.Articulation switch
         {
             Articulation.Wind => o.AttackSeconds,
@@ -104,7 +116,7 @@ public static class PerformanceSynth
         for (var n = onset; n < end; n++)
         {
             var t = n - onset;
-            double env = o.Articulation switch
+            double env = note.Gain * o.Articulation switch
             {
                 Articulation.Wind => Math.Min(1.0, t / attack) * Math.Min(1.0, (end - n) / release),
                 Articulation.Plucked => Math.Min(1.0, t / attack) * Math.Exp(-t / (o.DecaySeconds * fs)) * Math.Min(1.0, (end - n) / cutFade),
@@ -156,6 +168,44 @@ public static class PerformanceSynth
             x[n] += env * Harmonics(phase, f, fs, o.Spectrum);
             phase += 2 * Math.PI * f / fs;
         }
+    }
+
+    /// <summary>
+    /// Schroeder 殘響：4 組並聯回授梳狀濾波器（延遲互質、增益依 RT60 設定）後串接 2 組全通濾波器，
+    /// 與乾聲 1:1 混合。只用於產生「前音殘響延續到下一個音」的測試情境。
+    /// </summary>
+    private static double[] Reverb(double[] dry, int fs, double rt60)
+    {
+        var y = new double[dry.Length];
+        foreach (var ms in new[] { 29.7, 37.1, 41.1, 43.7 })
+        {
+            var d = (int)(ms / 1000 * fs);
+            var g = Math.Pow(10, -3.0 * d / (rt60 * fs));
+            var buf = new double[dry.Length];
+            for (var n = 0; n < dry.Length; n++)
+            {
+                buf[n] = dry[n] + (n >= d ? g * buf[n - d] : 0);
+                y[n] += 0.25 * buf[n];
+            }
+        }
+        foreach (var ms in new[] { 5.0, 1.7 })
+        {
+            var d = (int)(ms / 1000 * fs);
+            const double g = 0.7;
+            var outp = new double[y.Length];
+            for (var n = 0; n < y.Length; n++)
+            {
+                var xd = n >= d ? y[n - d] : 0;
+                var yd = n >= d ? outp[n - d] : 0;
+                outp[n] = (-g * y[n]) + xd + (g * yd);
+            }
+            y = outp;
+        }
+        for (var n = 0; n < y.Length; n++)
+        {
+            y[n] += dry[n];
+        }
+        return y;
     }
 
     private static double Harmonics(double phase, double f0, int fs, HarmonicSpectrum spectrum)

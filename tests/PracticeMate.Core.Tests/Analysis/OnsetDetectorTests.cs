@@ -88,6 +88,64 @@ public class OnsetDetectorTests
         });
     }
 
+    /// <summary>
+    /// 前音餘音延續到下一個音、且新音不比餘音大（漸弱、同音連續吐音）：
+    /// 起音不可被拉到餘音上（曾因此提前約 40 ms）。
+    /// </summary>
+    [Theory]
+    [InlineData(Articulation.Plucked, false)]
+    [InlineData(Articulation.Percussive, false)]
+    [InlineData(Articulation.Plucked, true)]
+    [InlineData(Articulation.Wind, true)]
+    public void Onsets_over_a_ringing_previous_note_are_not_pulled_early(Articulation articulation, bool sameNote)
+    {
+        var rng = new Random(4242 + (int)articulation + (sameNote ? 100 : 0));
+        var notes = new List<SynthNote>();
+        var t = 0.3;
+        for (var i = 0; i < 30; i++)
+        {
+            // 音量在 −10 到 0 dB 間隨機：新音常比前音餘音小或相近
+            var gain = Math.Pow(10, -rng.NextDouble() * 10 / 20);
+            notes.Add(new SynthNote(sameNote ? 67 : 55 + rng.Next(0, 30), t, 0.2, Gain: gain));
+            t += 0.2 + 0.05 + (rng.NextDouble() * 0.2);
+        }
+        var render = PerformanceSynth.Render(notes, new PerformanceOptions
+        {
+            Articulation = articulation, RingOut = true, DecaySeconds = 0.5, SnrDb = 40, Seed = 9,
+        });
+        var detected = OnsetDetector.Detect(SignalGenerator.ToFloat(render.Signal), 48000);
+        var (f, maxErr, matched) = Evaluate(render.OnsetSamples, detected, 48000);
+        Assert.True(f >= 0.95, $"{articulation}：F = {f:F3}（命中 {matched}/{notes.Count}，偵測 {detected.Count}）");
+        Assert.True(maxErr <= 10, $"{articulation}：最大起音誤差 {maxErr:F1} ms");
+    }
+
+    /// <summary>房間殘響（RT60 0.3 s）讓每個音的尾巴延續到下一個音，搭配漸弱樂句。</summary>
+    [Theory]
+    [InlineData(Articulation.Wind)]
+    [InlineData(Articulation.Plucked)]
+    [InlineData(Articulation.Percussive)]
+    public void Onsets_with_room_reverb_and_diminuendo_stay_within_10ms(Articulation articulation)
+    {
+        var notes = new List<SynthNote>();
+        var t = 0.3;
+        var rng = new Random(77 + (int)articulation);
+        for (var i = 0; i < 24; i++)
+        {
+            // 每 8 個音一段漸弱：0 dB → −14 dB
+            var gain = Math.Pow(10, -2.0 * (i % 8) / 20);
+            notes.Add(new SynthNote(60 + rng.Next(0, 12), t, 0.2, Gain: gain));
+            t += 0.25 + (rng.NextDouble() * 0.15);
+        }
+        var render = PerformanceSynth.Render(notes, new PerformanceOptions
+        {
+            Articulation = articulation, ReverbSeconds = 0.3, SnrDb = 40, Seed = 5,
+        });
+        var detected = OnsetDetector.Detect(SignalGenerator.ToFloat(render.Signal), 48000);
+        var (f, maxErr, matched) = Evaluate(render.OnsetSamples, detected, 48000);
+        Assert.True(f >= 0.95, $"{articulation}：F = {f:F3}（命中 {matched}/{notes.Count}，偵測 {detected.Count}）");
+        Assert.True(maxErr <= 10, $"{articulation}：最大起音誤差 {maxErr:F1} ms");
+    }
+
     [Fact]
     public void Steady_tone_with_vibrato_has_no_extra_onsets()
     {
