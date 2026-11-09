@@ -126,6 +126,15 @@ public class PitchAccuracyTests
     }
 
     [Theory]
+    [InlineData(0, 3)]
+    [InlineData(6, 0)]
+    public void Refinement_needs_at_least_one_harmonic_and_iteration(int harmonics, int iterations)
+    {
+        var options = new PitchDetectorOptions { RefinementHarmonics = harmonics, RefinementIterations = iterations };
+        Assert.Throws<ArgumentOutOfRangeException>(() => new McLeodPitchDetector(48000, 4096, options));
+    }
+
+    [Theory]
     [InlineData(44100, 4096)]
     [InlineData(48000, 4096)]
     [InlineData(96000, 8192)]

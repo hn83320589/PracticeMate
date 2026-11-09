@@ -15,7 +15,6 @@ namespace PracticeMate.Core.Pitch;
 /// </summary>
 internal sealed class HarmonicFrequencyRefiner
 {
-    private const int NewtonIterations = 3;
     private const double MaxDeviation = 0.03; // 泛音峰值與 h·f0 的最大相對偏差（約 ±50 音分）
 
     private readonly int _sampleRate;
@@ -23,6 +22,7 @@ internal sealed class HarmonicFrequencyRefiner
     private readonly int _fftSize;
     private readonly double _maxHarmonicFrequency;
     private readonly int _maxHarmonics;
+    private readonly int _newtonIterations;
     private readonly double[] _hann;
     private readonly double[] _weighted;
     private readonly double[] _padded;
@@ -31,13 +31,14 @@ internal sealed class HarmonicFrequencyRefiner
     private readonly RealFft _fft;
     private readonly List<(int Harmonic, int Bin, double Power)> _peaks = new(32);
 
-    public HarmonicFrequencyRefiner(int sampleRate, int windowSize, double maxHarmonicFrequency = 6000, int maxHarmonics = 6)
+    public HarmonicFrequencyRefiner(int sampleRate, int windowSize, int maxHarmonics, int newtonIterations, double maxHarmonicFrequency = 6000)
     {
         _sampleRate = sampleRate;
         _windowSize = windowSize;
         _fftSize = (int)BitOperations.RoundUpToPowerOf2((uint)(2 * windowSize));
         _maxHarmonicFrequency = Math.Min(maxHarmonicFrequency, 0.45 * sampleRate);
         _maxHarmonics = maxHarmonics;
+        _newtonIterations = newtonIterations;
         _hann = WindowFunction.Create(WindowType.Hann, windowSize, periodic: false);
         _weighted = new double[windowSize];
         _padded = new double[_fftSize];
@@ -137,7 +138,7 @@ internal sealed class HarmonicFrequencyRefiner
         var start = theta;
         var maxStep = 2 * Math.PI / _fftSize;
         var c = (_windowSize - 1) / 2.0;
-        for (var iter = 0; iter < NewtonIterations; iter++)
+        for (var iter = 0; iter < _newtonIterations; iter++)
         {
             Complex x = 0, x1 = 0, x2 = 0;
             var rot = Complex.FromPolarCoordinates(1, -theta);

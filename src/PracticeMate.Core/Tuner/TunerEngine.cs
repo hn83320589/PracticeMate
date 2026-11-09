@@ -72,7 +72,14 @@ public sealed class TunerEngine : ICaptureConsumer
         WindowSize = WindowSizeFor(sampleRate);
         _window = new float[WindowSize];
         _hop = Math.Max(1, (int)Math.Round(sampleRate / 100.0));
-        _detector = new McLeodPitchDetector(sampleRate, WindowSize, new PitchDetectorOptions { MinFrequency = 50, MaxFrequency = 1800 });
+        _detector = new McLeodPitchDetector(sampleRate, WindowSize, new PitchDetectorOptions
+        {
+            MinFrequency = 50,
+            MaxFrequency = 1800,
+            // 每 10 ms 都要算一次：減少精修運算以確保單區塊 ≤ 1 ms（錄音分析維持預設 6 / 3）
+            RefinementHarmonics = 4,
+            RefinementIterations = 2,
+        });
     }
 
     public int SampleRate { get; }

@@ -13,6 +13,12 @@ public sealed record PitchDetectorOptions
 
     /// <summary>以泛音的 DTFT 峰值精修頻率（見 <see cref="HarmonicFrequencyRefiner"/>）。</summary>
     public bool HarmonicRefinement { get; init; } = true;
+
+    /// <summary>精修時最多使用的泛音數（取最強者）。越少越快，但雜訊中的精度略降。</summary>
+    public int RefinementHarmonics { get; init; } = 6;
+
+    /// <summary>每個泛音峰值的 Newton 迭代次數。</summary>
+    public int RefinementIterations { get; init; } = 3;
 }
 
 /// <summary>單一視窗的音高估計。Clarity 為 NSDF 峰值（0–1），越接近 1 週期性越明確。</summary>
@@ -52,6 +58,8 @@ public sealed class McLeodPitchDetector
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sampleRate);
         ArgumentOutOfRangeException.ThrowIfLessThan(windowSize, 32);
         _options = options ?? new PitchDetectorOptions();
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_options.RefinementHarmonics, nameof(options));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_options.RefinementIterations, nameof(options));
         SampleRate = sampleRate;
         WindowSize = windowSize;
         var fftSize = (int)BitOperations.RoundUpToPowerOf2((uint)(2 * windowSize));
@@ -63,7 +71,7 @@ public sealed class McLeodPitchDetector
         _maxLag = Math.Min(windowSize - 2, (int)Math.Ceiling(sampleRate / _options.MinFrequency));
         _nsdf = new double[_maxLag + 2];
         _m = new double[_maxLag + 2];
-        _refiner = _options.HarmonicRefinement ? new HarmonicFrequencyRefiner(sampleRate, windowSize) : null;
+        _refiner = _options.HarmonicRefinement ? new HarmonicFrequencyRefiner(sampleRate, windowSize, _options.RefinementHarmonics, _options.RefinementIterations) : null;
     }
 
     public int SampleRate { get; }
